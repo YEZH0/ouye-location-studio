@@ -1,0 +1,68 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "ouye-location-studio"
+version = "0.1.0"
+description = "OUYE Location Studio — Windows iAP2 accessory location studio for iPhone"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "GPL-3.0-only" }
+authors = [
+    { name = "YEZH0 (欧耶哥爱数码)", email = "175146713+YEZH0@users.noreply.github.com" },
+]
+maintainers = [
+    { name = "YEZH0 (欧耶哥爱数码)", email = "175146713+YEZH0@users.noreply.github.com" },
+]
+keywords = ["ios", "iphone", "location", "iap2", "accessory", "gps", "nmea", "pymobiledevice3", "pyside6"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Win32 (MS Windows)",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+    "Operating System :: Microsoft :: Windows",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Debuggers",
+    "Topic :: Utilities",
+]
+dependencies = [
+    "PySide6>=6.6",
+    "cryptography>=43",
+    "pillow>=10",
+    "qrcode>=7.4",
+    "pymobiledevice3>=9.40,<10",
+    "pywin32>=306; sys_platform == 'win32'",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.24",
+    "pyinstaller>=6.6; sys_platform == 'win32'",
+]
+
+[project.scripts]
+ouye-location-studio = "ouye_location_studio.app:main"
+
+[project.urls]
+Homepage = "https://github.com/YEZH0/ouye-location-studio"
+Repository = "https://github.com/YEZH0/ouye-location-studio"
+Issues = "https://github.com/YEZH0/ouye-location-studio/issues"
+Upstream = "https://github.com/xmz28/tetherpin-ios"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/ouye_location_studio"]
+
+[tool.hatch.build.targets.sdist]
+include = ["src", "tests", "docs", "packaging", "README.md", "LICENSE", "THIRD_PARTY_NOTICES.md"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+testpaths = ["tests"]
+pythonpath = ["src"]
+# pymobiledevice3 pulls in xonsh, whose pytest plugin needs a real console.
+addopts = "-p no:xonsh"
