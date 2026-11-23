@@ -158,73 +158,71 @@ class LocationEngine:
                     message = await link.receive(min(0.25, remaining))
                 except TimeoutError:
                     message = None
-                if message is None:
-                    continue
+                if message is not None:
+                    fields = parameters(message.body)
+                    self._emit(
+                        EVENT_MESSAGE,
+                        message=f"收到控制消息 0x{message.identifier:04x}",
+                        identifier=f"0x{message.identifier:04x}",
+                        parameters=[{"id": i, "bytes": len(b)} for i, b in fields],
+                    )
 
-                fields = parameters(message.body)
-                self._emit(
-                    EVENT_MESSAGE,
-                    message=f"收到控制消息 0x{message.identifier:04x}",
-                    identifier=f"0x{message.identifier:04x}",
-                    parameters=[{"id": i, "bytes": len(b)} for i, b in fields],
-                )
-
-                if message.identifier == 0x1D00:
-                    await link.send(identity(self.adapter.transport))
-                elif message.identifier == 0x1D02:
-                    identified = True
-                    self.status.identified = True
-                    self._emit(EVENT_IDENTIFICATION_ACCEPTED, message="设备身份识别已接受")
-                elif message.identifier == 0x1D03:
-                    self._emit(EVENT_IDENTIFICATION_REJECTED, phase=SessionPhase.ERROR,
-                               message=f"设备拒绝了配件身份（参数 {[i for i, _ in fields]}）")
-                    raise RuntimeError(f"Identification rejected: {[i for i, _ in fields]}")
-                elif message.identifier == 0xAA00:
-                    if auth is None:
-                        raise RuntimeError(
-                            "需要配件认证，但尚未配置认证材料（证书与私钥）")
-                    self._emit(EVENT_AUTHENTICATION_REQUIRED,
-                               phase=SessionPhase.AUTHENTICATING,
-                               message="正在提交配件证书…")
-                    await link.send(await auth.certificate())
-                elif message.identifier == 0xAA02:
-                    if auth is None:
-                        raise RuntimeError(
-                            "需要配件认证，但尚未配置认证材料（证书与私钥）")
-                    challenges = [b for i, b in fields if i == 0]
-                    if len(challenges) != 1:
-                        raise RuntimeError("Invalid authentication challenge parameters")
-                    self._emit(EVENT_AUTHENTICATION_REQUIRED,
-                               phase=SessionPhase.AUTHENTICATING,
-                               message="正在签署认证挑战…")
-                    await link.send(await auth.sign(challenges[0]))
-                elif message.identifier == 0xAA05:
-                    authenticated = True
-                    self.status.authenticated = True
-                    self._emit(EVENT_AUTHENTICATION_SUCCEEDED, message="配件认证成功")
-                elif message.identifier == 0xAA04:
-                    self._emit(EVENT_AUTHENTICATION_FAILED, phase=SessionPhase.ERROR,
-                               message="配件认证被设备拒绝")
-                    raise _AuthRejected("配件认证被设备拒绝")
-                elif message.identifier == 0xFFFA:
-                    active = {i for i, b in fields if i in (1, 2) and not b}
-                    intervals = {
-                        i - 0x8000: max(1.0, int.from_bytes(b, "big") / 1000)
-                        for i, b in fields
-                        if i in (0x8001, 0x8002) and len(b) == 4
-                    }
-                    last_sent.clear()
-                    self.status.sentences = frozenset(active)
-                    self._emit(EVENT_LOCATION_REQUESTED, phase=SessionPhase.LOCATING,
-                               message="设备请求定位信息", sentences=sorted(active))
-                elif message.identifier == 0xFFFC:
-                    active.clear()
-                    self.status.active = False
-                    self.status.sentences = frozenset()
-                    self._emit(EVENT_LOCATION_STOPPED, phase=SessionPhase.DONE,
-                               message="设备已停止请求定位")
-                    self._emit(EVENT_RESTORE_REQUIRED,
-                               message="请在 iPhone 上确认位置已恢复真实定位")
+                    if message.identifier == 0x1D00:
+                        await link.send(identity(self.adapter.transport))
+                    elif message.identifier == 0x1D02:
+                        identified = True
+                        self.status.identified = True
+                        self._emit(EVENT_IDENTIFICATION_ACCEPTED, message="设备身份识别已接受")
+                    elif message.identifier == 0x1D03:
+                        self._emit(EVENT_IDENTIFICATION_REJECTED, phase=SessionPhase.ERROR,
+                                   message=f"设备拒绝了配件身份（参数 {[i for i, _ in fields]}）")
+                        raise RuntimeError(f"Identification rejected: {[i for i, _ in fields]}")
+                    elif message.identifier == 0xAA00:
+                        if auth is None:
+                            raise RuntimeError(
+                                "需要配件认证，但尚未配置认证材料（证书与私钥）")
+                        self._emit(EVENT_AUTHENTICATION_REQUIRED,
+                                   phase=SessionPhase.AUTHENTICATING,
+                                   message="正在提交配件证书…")
+                        await link.send(await auth.certificate())
+                    elif message.identifier == 0xAA02:
+                        if auth is None:
+                            raise RuntimeError(
+                                "需要配件认证，但尚未配置认证材料（证书与私钥）")
+                        challenges = [b for i, b in fields if i == 0]
+                        if len(challenges) != 1:
+                            raise RuntimeError("Invalid authentication challenge parameters")
+                        self._emit(EVENT_AUTHENTICATION_REQUIRED,
+                                   phase=SessionPhase.AUTHENTICATING,
+                                   message="正在签署认证挑战…")
+                        await link.send(await auth.sign(challenges[0]))
+                    elif message.identifier == 0xAA05:
+                        authenticated = True
+                        self.status.authenticated = True
+                        self._emit(EVENT_AUTHENTICATION_SUCCEEDED, message="配件认证成功")
+                    elif message.identifier == 0xAA04:
+                        self._emit(EVENT_AUTHENTICATION_FAILED, phase=SessionPhase.ERROR,
+                                   message="配件认证被设备拒绝")
+                        raise _AuthRejected("配件认证被设备拒绝")
+                    elif message.identifier == 0xFFFA:
+                        active = {i for i, b in fields if i in (1, 2) and not b}
+                        intervals = {
+                            i - 0x8000: max(1.0, int.from_bytes(b, "big") / 1000)
+                            for i, b in fields
+                            if i in (0x8001, 0x8002) and len(b) == 4
+                        }
+                        last_sent.clear()
+                        self.status.sentences = frozenset(active)
+                        self._emit(EVENT_LOCATION_REQUESTED, phase=SessionPhase.LOCATING,
+                                   message="设备请求定位信息", sentences=sorted(active))
+                    elif message.identifier == 0xFFFC:
+                        active.clear()
+                        self.status.active = False
+                        self.status.sentences = frozenset()
+                        self._emit(EVENT_LOCATION_STOPPED, phase=SessionPhase.DONE,
+                                   message="设备已停止请求定位")
+                        self._emit(EVENT_RESTORE_REQUIRED,
+                                   message="请在 iPhone 上确认位置已恢复真实定位")
 
                 if send_location and identified and authenticated and active:
                     now = time.time()

@@ -90,7 +90,10 @@ async def _drive_phone(stream: MockStream, script: list[Message]):
             peer_seq = (peer_seq + 1) & 255
             await stream.peer_write(Packet(ACK, peer_seq, 0, 1, message.encode()))
             await asyncio.sleep(0.03)
-        await asyncio.sleep(0.25)  # let trailing location sends be ACKed
+        # Keep the ACK loop alive long enough to cover the engine's periodic
+        # send tick.  This also exercises sends that happen without a new
+        # control message from the phone.
+        await asyncio.sleep(2.5)
     finally:
         ack_task.cancel()
         try:
@@ -208,13 +211,16 @@ async def test_stop_is_requested_cleanly():
     stream = MockStream()
     script = [Message(0x1D00), Message(0x1D02), Message(0xAA00),
               Message(0xAA02, parameter(0, b"\x00" * 32)), Message(0xAA05),
-              Message(0xFFFA, parameter(1) + parameter(2))]
+                  Message(0xFFFA, parameter(1) + parameter(2)
+                          + parameter(0x8001, (1500).to_bytes(4, "big"))
+                          + parameter(0x8002, (1500).to_bytes(4, "big")))]
     phone = asyncio.create_task(_drive_phone(stream, script))
-    collector = await _run_engine(stream, duration=60.0, stop_after=1.0)
+    collector = await _run_engine(stream, duration=60.0, stop_after=2.2)
     await phone
     finished = collector.events[-1]
     assert finished.name == EVENT_FINISHED
     assert finished.data["stop_reason"] == "stopped"
+    assert finished.data["location_packets_acknowledged"] == 2
 
 
 async def test_missing_auth_material_is_reported():
