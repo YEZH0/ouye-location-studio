@@ -22,7 +22,8 @@ gui = Analysis(
     excludes=["matplotlib", "pandas", "numpy", "tkinter"],
 )
 helper = Analysis(
-    [str(root / "src/ouye_location_studio/auth_helper.py")],
+    [str(root / "packaging/auth_helper_macos.py")],
+    pathex=[str(root / "src")],
     excludes=["PySide6"],
 )
 gui_exe = EXE(
