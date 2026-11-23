@@ -1,0 +1,52 @@
+# OUYE Location Studio macOS
+
+## 使用
+
+通过 Finder 在已解锁的测试 iPhone 上完成「信任此电脑」，只连接一台测试设备并使用支持数据传输的 USB 线。启动 APP 后点击检测。macOS 使用系统 USB 服务，无需另装 Windows Apple USB 驱动。共享界面的无设备提示仍包含 Windows 驱动文字，以本段 Mac 操作说明为准。这个 iAP2 流程无需 Xcode、开发者模式或开发者镜像。
+
+定位前阅读共享界面的用途和安全提示。认证区仅选择您已获授权使用的 MFi 配件身份文件。材料保留在 APP 外，通过本地认证助手处理。品牌、二维码、安全确认、状态事件和错误显示沿用共享 UI。
+
+## ACK 与地图验收
+
+旧 Mac iAP2 记录里曾出现认证和订阅完成、定位包有 ACK 而地图蓝点留在原处。另一次上游 CLI 测试曾在用户干预后观察到蓝点移动。现有证据不足以确认旧故障根因。旧 DVT 测试不计入本版本验收。
+
+| 步骤 | 应记录的证据 | 本版本真机结果 |
+| --- | --- | --- |
+| USB 检测与连接 | 设备机型、iOS 版本、信任状态、配件服务与 iAP2 链路状态 | 待测 |
+| 认证失败 | 未配置材料时的准确错误、退出与重新连接 | 待测 |
+| 认证与定位发送 | 身份及认证接受、定位订阅、ACK 计数 | 待测 |
+| 地图采纳 | 发送前的蓝点、目标坐标、发送后「我的位置」蓝点、观察时间 | 待测 |
+| 停止和恢复 | 点击停止后确认蓝点回到本地，记录用时和是否需要拔线或人工处理 | 待测 |
+| 活动会话断线及异常退出 | 逐项确认蓝点恢复、重连后可重新检测和开会话 | 待测 |
+| 健康 App | 用户另行记录界面实际状态 | 待测 |
+
+地图验收以 iPhone 蓝点为准，平移地图中心或显示搜索图钉不能作为证据。ACK 只能确认链路交付。如果已有 ACK 但地图不动，记录认证接受、订阅类型、首次 ACK 与地图观察时间，结论标为「已确认链路交付，地图采纳未观测到」。没有真机证据时不归因于 NMEA、权限、系统版本或健康功能资格。如果停止后蓝点未恢复，断开 USB 并重新确认，分别记录停止和拔线的结果。
+
+共享引擎的计时检查当前位于收到控制消息之后。手机订阅后如果停止发送控制消息，静止坐标可能只发一批。这是源码观察，尚未确认与旧地图现象的因果关系。后续如需修改，共享兼容性方案是让收包超时也驱动定时发送，保持现有订阅、最小间隔、ACK 与状态事件契约，并由 Windows 回归覆盖。此 PR 不包含该共享改动。
+
+## Apple Silicon 构建
+
+在原生 arm64 Python 环境中运行以下命令。打包开发机需要系统构建和签名工具。
+
+```sh
+python3 -m venv .venv
+.venv/bin/python -m pip install -e '.[dev]' 'pyinstaller>=6.6,<7'
+.venv/bin/python -m pytest -q
+.venv/bin/python packaging/build_macos.py --dmg
+```
+
+APP 和可选 DMG 在 `dist/macos`。程序通过 APP 内独立的 `ouye-auth-helper` 处理认证请求。Intel 需要在原生 x86_64 Python 和依赖环境重新构建并实测。
+
+## 发行检查
+
+- 本地构建默认临时签名。正式构建在已授权的签名机器配置 `OUYE_MAC_CODESIGN_IDENTITY`，使用 Developer ID Application，验证嵌套代码签名及 Hardened Runtime。用 `notarytool` 提交成品，接受后 staple 安装介质并验证，再在独立 Mac 上通过 Gatekeeper 验证首次打开与 USB 路径。[Apple 公证文档](https://developer.apple.com/documentation/security/notarizing-macos-software-before-distribution)
+- 根据实际 APP 内容核对 Python、PySide6/Qt 模块、pymobiledevice3、cryptography、Pillow、qrcode 和传递依赖的版本与许可。APP 包含项目 GPL 与第三方声明。发行前须补齐实际分发组件的许可文本及声明，按适用许可提供与发布二进制对应的源码和构建脚本，保留上游版权，确认所分发 Qt 模块的许可路径。[Qt for Python 许可](https://doc.qt.io/qtforpython-6/licenses.html)
+- 检查分发清单与构建日志，确认没有打入配件证书、私钥、配对记录或私有日志。由独立 QA 和发布审查核对真机报告后再提交老板决定。
+
+## 2026-11-23 开发验证记录
+
+- 环境为 Apple Silicon arm64、macOS 27.0.1、Python 3.13.14、pymobiledevice3 9.40.0、PySide6 6.12.0 和 PyInstaller 6.22.3。
+- 全量 pytest 46 项通过，其中 Mac USB 契约 7 项。共享模拟会话覆盖认证、定位发送、停止和缺少认证材料；Mac 契约覆盖 USB 过滤、无设备、连接期间断线、信任失败、服务错误、取消与流清理。
+- 本机 USB 清单为空。共享 GUI 离屏检查使用实际适配器显示「未检测到设备」，作者与设备确认对话框可实例化。打包 APP 通过离屏启动检查，包内认证助手通过 JSON-lines 返回缺少凭据。
+- APP 严格签名校验和 DMG 完整性通过，本地采用临时签名。DMG SHA-256 为 `46cd687cb96d2288283a375254b5a7a9e7195ad9097aabe59385c2e074bf36e5`。未进行 Developer ID 签名、公证、干净机器验证或独立 QA。
+- 老板反馈当前无法接入 iPhone。实际认证、Apple 地图采纳、停止后原始定位恢复、活动会话拔线及强制退出后的端到端恢复均待测。未执行健康 App 或 Apple Watch 高血压通知验证。
