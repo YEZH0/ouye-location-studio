@@ -28,7 +28,8 @@ def _resource_path(name: str) -> str | None:
     if getattr(sys, "frozen", False):
         root = Path(getattr(sys, "_MEIPASS", Path(sys.executable).parent))
     else:
-        root = Path(__file__).resolve().parents[2]
+        # dialogs.py -> ui -> ouye_location_studio -> src -> project root
+        root = Path(__file__).resolve().parents[3]
     candidate = root / name
     return str(candidate) if candidate.is_file() else None
 

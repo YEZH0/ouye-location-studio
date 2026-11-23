@@ -13,11 +13,11 @@ def main(argv: list[str] | None = None) -> int:
     app.setApplicationName("OUYE Location Studio")
     app.setOrganizationName("OUYE")
 
-    from .ui.style import QSS
-
-    app.setStyleSheet(QSS)
+    from .ui.style import apply_theme
 
     settings = QSettings("OUYE", "LocationStudio")
+    apply_theme(app, settings.value("theme", "light", str))
+
     if not settings.value("first_run_done", False, bool):
         from .ui.dialogs import FirstRunDialog
 

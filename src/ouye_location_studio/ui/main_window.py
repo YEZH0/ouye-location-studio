@@ -7,6 +7,7 @@ import time
 
 from PySide6.QtCore import Qt, QSettings, QThread, QTimer, Signal
 from PySide6.QtWidgets import (
+    QApplication,
     QComboBox,
     QDoubleSpinBox,
     QFileDialog,
@@ -54,6 +55,7 @@ from .dialogs import (
     RestoreConfirmDialog,
 )
 from .qr import make_qr_pixmap
+from .style import THEME_NAMES, apply_theme
 from .worker import EngineWorker
 
 _PHASE_TEXT = {
@@ -91,8 +93,12 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.setWindowTitle("OUYE Location Studio · 欧耶哥爱数码")
         self.resize(760, 720)
+        self.setMinimumSize(640, 600)
 
         self.settings = QSettings("OUYE", "LocationStudio")
+        self._theme = self.settings.value("theme", "light", str)
+        if self._theme not in THEME_NAMES:
+            self._theme = "light"
         self.adapter = create_platform()
         self._worker: EngineWorker | None = None
         self._detect: _DetectWorker | None = None
@@ -133,8 +139,12 @@ class MainWindow(QMainWindow):
         license_btn = QPushButton("开源许可")
         license_btn.setObjectName("linkButton")
         license_btn.clicked.connect(lambda: LicenseDialog(self).exec())
+        self.theme_btn = QPushButton(self._theme_label())
+        self.theme_btn.setObjectName("linkButton")
+        self.theme_btn.clicked.connect(self._toggle_theme)
         header.addWidget(about_btn)
         header.addWidget(license_btn)
+        header.addWidget(self.theme_btn)
         root.addLayout(header)
 
         # Driver / device banner
@@ -312,6 +322,18 @@ class MainWindow(QMainWindow):
 
     def _hide_banner(self):
         self.banner.setVisible(False)
+
+    def _theme_label(self) -> str:
+        return "主题：" + THEME_NAMES.get(self._theme, "浅色")
+
+    def _toggle_theme(self):
+        self._theme = "dark" if self._theme == "light" else "light"
+        self.settings.setValue("theme", self._theme)
+        app = QApplication.instance()
+        if app is not None:
+            apply_theme(app, self._theme)
+        self.theme_btn.setText(self._theme_label())
+        self._log(f"已切换为{THEME_NAMES.get(self._theme, self._theme)}主题。")
 
     def _check_driver(self):
         if sys.platform != "win32":
