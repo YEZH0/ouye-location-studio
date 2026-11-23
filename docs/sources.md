@@ -25,3 +25,7 @@ Python USB 传输使用 [pymobiledevice3](https://github.com/doronz88/pymobilede
 | --- | --- | --- |
 | xmz28/tetherpin-ios | `791b308ae51343b344a76afe5a3f7a02a5aa6dbf` | GPL-3.0-only |
 | YEZH0/ios-location-studio（仅参考交互/品牌） | `6d896872c7c97bdf49e0893a53262f4764e88d47` | MIT |
+
+> 协议兼容性说明：TetherPin 发布版 **v1.0.0**（tag，提交 `b918be4`）与其最新 main 的协议核心
+> （wire/link/profile/auth/transport/cli）逐字节一致（SHA-256 相同），本项目复用即等价于 v1.0.0 的协议核心。
+> 详见 `docs/real_device_path.md`。

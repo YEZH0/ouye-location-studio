@@ -57,3 +57,5 @@ python packaging/build_windows.py
 - **未检测到设备**：确认数据线支持数据传输、已安装 Apple 驱动、iPhone 已解锁并点击「信任」。
 - **认证失败（AA04）**：证书/私钥不匹配或不被设备接受；请使用合法且匹配的配件身份。
 - **设备断开**：重新插拔并重新「检测设备」。
+
+完整故障排查（按现象归类 + 在哪台设备操作）见 `docs/troubleshooting.md`；真机完整验收路径与合规边界见 `docs/real_device_path.md`。

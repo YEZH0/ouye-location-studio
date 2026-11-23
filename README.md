@@ -20,13 +20,26 @@
 ```
 src/ouye_location_studio/
 ├── core/          iAP2 协议核心（wire/link/profile/auth/engine）
-├── platforms/     平台适配（Windows USB，macOS 预留）
-├── ui/            PySide6 图形界面
+├── platforms/     平台适配（Windows USB；macOS 见 feat/macos-iap2-v1）
+├── ui/            PySide6 图形界面（跨平台）
 ├── state.py       统一状态接口（Windows / macOS 共用）
 ├── auth_helper.py 本地 MFi-v3 认证助手（私钥不进入引擎进程）
 ├── presets.py     坐标预设
 └── brand.py       品牌与出处信息
 ```
+
+## 图形界面特性
+
+- 设备检测、坐标预设（含自定义坐标）、会话时长 / 发送间隔、倒计时与进度条。
+- 开始定位前的**三项强制确认**（信任、地图位置、健康 App 状态），只能由你本人在 iPhone 上完成。
+- 停止后**定位恢复确认**弹窗；异常均以红色横幅如实提示，不会出现虚假的「定位成功」。
+- **浅色 / 深色主题**一键切换（窗口右上角「主题」按钮，自动记忆）。
+- 首次使用须知、关于作者、开源许可页；抖音 / 小红书仅提供「搜索关键词」引导，不编造 URL；二维码只编码本仓库地址。
+
+## 跨平台协作
+
+本项目由 Windows 与 macOS 两个分支并行开发，共享 `core/`、`state.py`、`ui/` 与 `platforms/base.py`
+接口；每个平台只维护自己的 adapter 与打包脚本。分工与分支规则见 `AGENTS.md`。
 
 ## 快速开始（源码）
 
@@ -58,7 +71,7 @@ pytest -q                        # 单元测试
 pytest -q tests/test_engine_mock.py   # 模拟设备测试（无真机）
 ```
 
-真机验收见 `docs/build.md` 末尾的「真机验收清单」。
+真机验收见 `docs/build.md` 末尾的「真机验收清单」；真机完整验收路径研究与合规边界见 `docs/real_device_path.md`。
 
 ## 构建 Windows EXE
 
